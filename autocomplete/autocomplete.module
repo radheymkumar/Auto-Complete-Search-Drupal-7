@@ -1,0 +1,112 @@
+<?php
+
+function autocomplete_menu() {
+	$item['autocomplete'] = array(
+		'title' => t('Autocomplete'),
+		'page callback' => 'drupal_get_form',
+		'page arguments' => array('autocomplete_page'),
+		'access callback' => TRUE,
+		);
+	$item['autocomplete/user'] = array(
+		'title' => t('Autocomplete User'),
+		'page callback' => '_autocomplete_user',
+		'access callback' => TRUE,
+		);
+
+	$item['autocomplete-ajax'] = array(
+		'title' => t('Autocomplete Ajax'),
+		'page callback' => 'drupal_get_form',
+		'page arguments' => array('autocomplete_ajax_page'),
+		'access callback' => TRUE,
+		);
+	return $item;
+}
+
+function autocomplete_ajax_page($form, &$form_state) {
+
+	$form['wrapper'] = array(
+    '#markup' => '<div id="test-ajax"></div>',
+  	);
+
+	$form['name'] = array(
+    '#type' => 'textfield',
+    '#title' => t('Name'),
+    '#default_value' => '',
+    '#maxlength' => '128',
+    '#required' => TRUE,
+   /* '#ajax' => array(
+        'callback' => '_validate_name',
+        'wrapper' => 'name-error-icon-container',
+        'method' => 'html',
+        'effect' => 'none',
+        'progress' => array(
+            'message' => NULL,
+        ),
+   	  ),*/
+	);
+
+	$form['submit'] = array(
+	    '#type' => 'submit',
+	    '#value' => 'Submit',
+	    '#ajax' => array(
+	        'callback' => '_handle_form_submit',
+	        'effect' => 'fade',
+	    ),
+	);
+
+	return $form;
+}
+
+function _handle_form_submit($form, $form_state) {
+  // Dummy/dumb validation for demo purpose.
+  if (!empty($form_state['input']['name'])) {
+    return 'Subscribed !';
+  }
+  else {
+    return $form;
+  }
+}
+/*
+function _validate_name($form, $form_state) {
+
+    if ($form_state['values']['name'] != '') {
+    $output = 'OK';
+    }
+    else {
+      $output = 'Enter a value';
+    }
+
+   return $output;
+
+}*/
+
+function autocomplete_page($form, &$form_state) {
+	$form['userlist'] = array(
+		'#title' => t('UserName'),
+		'#type' => 'textfield',
+		'#autocomplete_path' => 'autocomplete/user',
+	);
+	
+	return $form;
+}
+
+function _autocomplete_user($string="") {
+	global $user;
+	$match = array();
+	$query =db_select('users','u')
+				->fields('u',array('name'))
+				->condition('u.name', db_like($string) . '%','LIKE')
+				->condition('u.uid', 0, '<>')
+				->range(0,10);
+/*	echo "<pre>";			
+	print_r($query->execute());
+	die;*/			
+	$result = $query->execute();			
+	foreach ($result as $value) {
+		$match[$value->name] = check_plain($value->name);
+	}
+	
+	drupal_json_output($match);
+	exit;
+}
+
